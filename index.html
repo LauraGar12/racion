@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Раціон</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --text:#111111; --muted:#8a8a8e; --line:#e5e5ea; --card:#ffffff; --card-dash:#dcdce0;
+  --track:#efeff2; --accent:#111111; --sheet:#ffffff; --input:#f4f4f6; --danger:#e5484d; --ok:#22a55a;
+}
+:root.dark{
+  --bg:#141416; --text:#f2f2f4; --muted:#8e8e95; --line:#2a2a2e; --card:#1b1b1e; --card-dash:#34343a;
+  --track:#2a2a2e; --accent:#f2f2f4; --sheet:#1f1f22; --input:#2a2a2e;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;}
+body{padding:0 16px 140px}
+.top{display:flex;align-items:center;gap:10px;padding:18px 0 6px}
+.top h1{font-size:28px;margin:0;font-weight:700;flex:1}
+.daynav{display:flex;align-items:center;gap:4px}
+.daynav button{border:0;background:var(--input);color:var(--text);width:34px;height:34px;border-radius:50%;font-size:18px}
+.daynav button:disabled{opacity:.3}
+.daylabel{font-size:14px;color:var(--muted);min-width:78px;text-align:center}
+.hero{text-align:center;padding:26px 0 18px}
+.hero .big{font-size:38px;font-weight:700;letter-spacing:-.5px}
+.hero .sub{color:var(--muted);font-size:17px;margin-top:2px}
+.kcal{display:flex;justify-content:space-between;color:var(--muted);font-size:17px;margin-top:6px}
+.bar{height:12px;border-radius:8px;background:var(--track);margin:10px 0 26px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:8px;transition:width .3s}
+.bar.over i{background:var(--danger)}
+hr{border:0;border-top:1px solid var(--line);margin:0 0 18px}
+.card{position:relative;border:1.5px dashed var(--card-dash);border-radius:12px;padding:14px 16px 12px;margin-bottom:10px;
+  background:var(--card);overflow:hidden;cursor:pointer;transition:transform .08s}
+.card:active{transform:scale(.985)}
+.card .fill{position:absolute;inset:0 auto 0 0;width:0;opacity:.09;pointer-events:none}
+.row1{display:flex;align-items:center;gap:12px;position:relative}
+.badge{flex:none;width:32px;height:24px;border-radius:7px;color:#fff;font-weight:600;font-size:15px;
+  display:flex;align-items:center;justify-content:center}
+.name{flex:1;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amt{font-size:15px;color:var(--muted);white-space:nowrap;align-self:flex-start;padding-top:1px}
+.amt b{color:var(--text);font-weight:600}
+.row2{display:flex;justify-content:space-between;color:var(--muted);font-size:14.5px;margin-top:8px;position:relative}
+.left{font-weight:500}
+.left.ok{color:var(--ok)} .left.zero{color:var(--muted)} .left.over{color:var(--danger)}
+.card.done{opacity:.55}
+.notes{margin-top:26px;border-top:1px solid var(--line);padding-top:22px}
+.empty{text-align:center;color:var(--muted);padding:10px 0}
+.empty .ico{font-size:40px;opacity:.5}
+.empty h3{color:var(--text);margin:10px 0 6px;font-size:19px}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--input);border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:15px}
+.note .t{color:var(--muted);font-size:12px;flex:none;padding-top:2px}
+.note .x{flex:1;white-space:pre-wrap;word-break:break-word}
+.note button{border:0;background:none;color:var(--muted);font-size:16px}
+.composer{display:flex;gap:10px;align-items:flex-end;margin-top:12px}
+.composer textarea{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;font-size:16px;
+  background:var(--bg);color:var(--text);resize:none;min-height:52px;max-height:140px}
+.composer button{flex:none;width:52px;height:52px;border-radius:12px;border:0;background:#8e8e93;color:#fff;font-size:20px}
+.composer button.on{background:var(--accent);color:var(--bg)}
+.hint{color:var(--muted);font-size:13px;margin-top:6px}
+/* bottom sheet */
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+.shade.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:var(--sheet);border-radius:20px 20px 0 0;padding:10px 16px 24px;
+  transform:translateY(105%);transition:transform .25s ease;z-index:11;max-height:88vh;overflow:auto}
+.sheet.show{transform:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.sh-title{display:flex;gap:12px;align-items:center;font-size:19px;font-weight:600}
+.sh-info{color:var(--muted);font-size:14.5px;margin:8px 0 16px}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:52px;height:52px;border-radius:14px;border:0;background:var(--input);color:var(--text);font-size:24px}
+.stepper input{flex:1;height:52px;border-radius:14px;border:0;background:var(--input);color:var(--text);
+  font-size:24px;font-weight:600;text-align:center;font-family:inherit;min-width:0}
+.unit{color:var(--muted);font-size:16px;width:24px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+.chips button{border:0;background:var(--input);color:var(--text);border-radius:20px;padding:8px 14px;font-size:14px}
+.calc{color:var(--muted);font-size:14.5px;margin:10px 0 14px;min-height:20px}
+.add{width:100%;height:52px;border:0;border-radius:14px;background:var(--accent);color:var(--bg);font-size:17px;font-weight:600}
+.hist{margin-top:18px}
+.hist .h{color:var(--muted);font-size:13px;margin-bottom:6px}
+.hist .e{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.hist .e button{border:0;background:var(--input);color:var(--danger);border-radius:10px;padding:6px 10px;font-size:13px}
+.toast{position:fixed;left:50%;top:14px;transform:translateX(-50%) translateY(-90px);background:var(--accent);color:var(--bg);
+  padding:10px 16px;border-radius:12px;font-size:14px;transition:transform .25s;z-index:20}
+.toast.show{transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Раціон</h1>
+  <div class="daynav">
+    <button id="prev" aria-label="Попередній день">‹</button>
+    <span class="daylabel" id="daylabel">Сьогодні</span>
+    <button id="next" aria-label="Наступний день">›</button>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="big" id="prot">0 грам</div>
+  <div class="sub">білків</div>
+</div>
+<div class="kcal"><span>Калорії</span><span id="kcal">0 / 0 ккал</span></div>
+<div class="bar" id="kbar"><i></i></div>
+<hr>
+
+<div id="list"></div>
+
+<div class="notes">
+  <div id="notes"></div>
+  <div class="composer">
+    <textarea id="noteText" rows="1" placeholder="Якщо ви спожили щось поза межами програми, вкажіть тут."></textarea>
+    <button id="noteSend" aria-label="Додати замітку">➤</button>
+  </div>
+  <div class="hint">Якщо напишеш калорії, напр. «тістечко 320 ккал», вони додадуться до денних.</div>
+</div>
+
+<div class="shade" id="shade"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="sh-title"><span class="badge" id="shBadge"></span><span id="shName"></span></div>
+  <div class="sh-info" id="shInfo"></div>
+  <div class="stepper">
+    <button id="minus">−</button>
+    <input id="amount" type="number" inputmode="decimal" min="0" placeholder="0">
+    <span class="unit" id="shUnit">г</span>
+    <button id="plus">+</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="calc" id="calc"></div>
+  <button class="add" id="addBtn">Додати</button>
+  <div class="hist" id="hist"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== ПРОГРАМА =====================
+   Кожна група (літера) — взаємозамінні продукти.
+   limit — скільки можна, якщо їсти ТІЛЬКИ цей продукт; kcal і prot — на весь limit.
+   З'їла частину одного продукту → решта групи зменшується пропорційно калоріям.
+   Щоб змінити ліміти — просто поміняй числа тут. */
+const GROUPS = [
+ {id:'А', color:'#3b82f6', items:[
+  ['Бобові',248,16,80], ['Будь-яка крупа',248,7.5,75], ['Картопля',250,6.5,325],
+  ['Кукурудза свіжа',249,9.6,290], ['Лаваш',240,8,100], ['Макарони т.с.',238,8.4,70],
+  ['Рис (не шліфований)',248,5.6,75], ['Хлібці',240,7.5,75], ['Цільнозернове борошно',240,8.3,75],
+  ['Цільнозерновий хліб',250,9,100]]},
+ {id:'Б', color:'#ef4444', items:[
+  ['Куряче або індиче філе',429,85.8,390], ['Морепродукти',430,86,430], ['Риба (від 5% жиру)',425,45,250],
+  ['Риба (до 5% жиру)',429,78,390], ['Яйця (цілі)',471,37.5,6,'шт']]},
+ {id:'В', color:'#22c55e', items:[
+  ['Гриби',120,21,600], ['Овочі (квашені також і зелень)',120,9,600]]},
+ {id:'Г', color:'#eab308', items:[
+  ['Авокадо',160,2,100], ['Будь-яка олія (рекомендуємо лляну)',153,0,17], ['Гірчиця',78,6,120],
+  ['Кетчуп',80,0.8,80], ['Майонез',150,0.3,25], ['Оливки',161,1.4,140]]},
+ {id:'Д', color:'#a855f7', items:[
+  ['Кефір 1%',224,16.3,510], ['Молоко 1%',224,16.3,510], ['Несолодкий йогурт 1% жиру',224,16.3,510],
+  ['Сир кисломолочний нежирний (0,2% жиру)',224,50.4,280], ["Сири м'які, тверді, плавлені",210,12,60],
+  ['Сметана 15%',225,12,150]]},
+ {id:'Е', color:'#ec4899', items:[
+  ['Банани, виноград, хурма',218,2.3,230], ['Фрукти та ягоди',220,4.4,440]]},
+ {id:'Є', color:'#6b7280', items:[
+  ['Будь-які горіхи (рекомендуємо грецькі)',60,2,10], ['Насіння',60,2,10]]},
+ {id:'Ж', color:'#f97316', items:[
+  ['Банани, виноград, хурма',451,4.8,475], ['Будь-що (солодощі, снеки, ковбаса тощо)',450,4.5,90],
+  ['Міцні алкогольні напої (НЕ КОЖНОГО ДНЯ!)',110,0,50], ['Пиво (НЕ КОЖНОГО ДНЯ!)',103,0,240],
+  ['Сухе вино (НЕ КОЖНОГО ДНЯ!)',104,0,150], ['Фрукти та ягоди',450,9,900]]},
+];
+/* ==================================================== */
+
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); if (tg.colorScheme === 'dark') document.documentElement.classList.add('dark'); }
+else if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+
+// індексуємо продукти
+const ITEMS = {};
+GROUPS.forEach(g => {
+  g.budget = Math.max(...g.items.map(i => i[1]));          // калорійний бюджет групи
+  g.items = g.items.map((a, n) => {
+    const it = {id: g.id + n, g, name:a[0], kcal:a[1], prot:a[2], limit:a[3], unit:a[4] || 'г'};
+    it.kpu = it.kcal / it.limit; it.ppu = it.prot / it.limit;   // ккал і білок на 1 г (1 шт)
+    ITEMS[it.id] = it; return it;
+  });
+});
+const DAY_TOTAL = GROUPS.reduce((s, g) => s + g.budget, 0);
+
+/* ---------- сховище: Telegram CloudStorage (синхронізується між пристроями) або localStorage ---------- */
+const useCloud = !!(tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9'));
+const store = {
+  get: k => new Promise(res => {
+    if (useCloud) tg.CloudStorage.getItem(k, (e, v) => res(e ? null : v));
+    else { try { res(localStorage.getItem(k)); } catch { res(null); } }
+  }),
+  set: (k, v) => new Promise(res => {
+    if (useCloud) tg.CloudStorage.setItem(k, v, () => res());
+    else { try { localStorage.setItem(k, v); } catch {} res(); }
+  }),
+};
+
+/* ---------- стан ---------- */
+const iso = d => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 6e4); return z.toISOString().slice(0, 10); };
+const todayISO = () => iso(new Date());
+let day = todayISO();
+let data = {e: [], n: []};   // e: [{i:itemId, a:amount, t:time}], n: [{x:text, k:kcal, t:time}]
+let current = null;
+
+async function load() {
+  const raw = await store.get('d_' + day);
+  try { data = raw ? JSON.parse(raw) : {e: [], n: []}; } catch { data = {e: [], n: []}; }
+  data.e ||= []; data.n ||= [];
+  render();
+}
+const save = () => store.set('d_' + day, JSON.stringify(data));
+
+function stats() {
+  const used = {}, gk = {};
+  let prot = 0, kcal = 0;
+  data.e.forEach(e => {
+    const it = ITEMS[e.i]; if (!it) return;
+    used[it.id] = (used[it.id] || 0) + e.a;
+    gk[it.g.id] = (gk[it.g.id] || 0) + e.a * it.kpu;
+    prot += e.a * it.ppu; kcal += e.a * it.kpu;
+  });
+  data.n.forEach(n => kcal += n.k || 0);
+  return {used, gk, prot, kcal};
+}
+// скільки ще можна цього продукту з урахуванням усієї групи
+function remaining(it, s) {
+  const own = it.limit - (s.used[it.id] || 0);
+  const byGroup = (it.g.budget - (s.gk[it.g.id] || 0)) / it.kpu;
+  return Math.min(own, byGroup);
+}
+const r1 = x => Math.round(x * 10) / 10;
+const fmt = (x, u) => (u === 'шт' ? r1(x) : Math.round(x)) + ' ' + u;
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- рендер ---------- */
+function render() {
+  const s = stats();
+  document.getElementById('prot').textContent = Math.round(s.prot) + ' грам';
+  document.getElementById('kcal').textContent = Math.round(s.kcal) + ' / ' + DAY_TOTAL + ' ккал';
+  const kb = document.getElementById('kbar');
+  kb.querySelector('i').style.width = Math.min(100, s.kcal / DAY_TOTAL * 100) + '%';
+  kb.classList.toggle('over', s.kcal > DAY_TOTAL);
+
+  const t = todayISO();
+  const label = day === t ? 'Сьогодні'
+    : day === iso(new Date(Date.now() - 864e5)) ? 'Вчора'
+    : new Date(day + 'T12:00').toLocaleDateString('uk-UA', {day:'numeric', month:'short'});
+  document.getElementById('daylabel').textContent = label;
+  document.getElementById('next').disabled = day >= t;
+
+  let html = '';
+  GROUPS.forEach(g => {
+    const gUsed = (s.gk[g.id] || 0) / g.budget;
+    g.items.forEach(it => {
+      const u = s.used[it.id] || 0, rem = remaining(it, s);
+      let left = '';
+      if (gUsed > 0) {
+        if (rem > 0.05) left = `<span class="left ok">ще ${fmt(rem, it.unit)}</span>`;
+        else if (gUsed > 1.001 && u > 0) left = `<span class="left over">перебір групи</span>`;
+        else left = `<span class="left zero">ліміт вичерпано</span>`;
+      }
+      html += `<div class="card${gUsed >= 0.999 && rem <= 0.05 ? ' done' : ''}" data-id="${it.id}">
+        <div class="fill" style="width:${Math.min(100, gUsed * 100)}%;background:${g.color}"></div>
+        <div class="row1"><span class="badge" style="background:${g.color}">${g.id}</span>
+          <span class="name">${esc(it.name)}</span>
+          <span class="amt"><b>${u ? (it.unit === 'шт' ? r1(u) : Math.round(u)) : 0}</b> / ${it.limit} ${it.unit}</span></div>
+        <div class="row2"><span>${it.kcal} ккал • ${it.prot} г білка</span>${left}</div>
+      </div>`;
+    });
+  });
+  document.getElementById('list').innerHTML = html;
+
+  const nEl = document.getElementById('notes');
+  nEl.innerHTML = data.n.length
+    ? data.n.map((n, i) => `<div class="note"><span class="t">${n.t}</span><span class="x">${esc(n.x)}</span>
+        <button data-note="${i}" aria-label="Видалити">✕</button></div>`).join('')
+    : `<div class="empty"><div class="ico">💬</div><h3>Заміток поки що немає</h3>Натисніть на поле внизу, щоб додати першу замітку</div>`;
+}
+
+/* ---------- шторка продукту ---------- */
+const $ = id => document.getElementById(id);
+function openSheet(it) {
+  current = it;
+  $('shBadge').textContent = it.g.id; $('shBadge').style.background = it.g.color;
+  $('shName').textContent = it.name; $('shUnit').textContent = it.unit;
+  $('amount').value = '';
+  updateSheet();
+  $('shade').classList.add('show'); $('sheet').classList.add('show');
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+function closeSheet() { $('shade').classList.remove('show'); $('sheet').classList.remove('show'); current = null; }
+function updateSheet() {
+  const it = current; if (!it) return;
+  const s = stats(), rem = remaining(it, s);
+  $('shInfo').textContent = `Ліміт ${it.limit} ${it.unit} • ` + (rem > 0.05 ? `можна ще ${fmt(rem, it.unit)}` : 'ліміт групи вичерпано');
+  const opts = it.unit === 'шт' ? [1, 2, 3] : [...new Set([0.25, 0.5, 1].map(f => Math.round(it.limit * f)))];
+  if (rem > 0.05 && !opts.includes(Math.round(rem))) opts.push(it.unit === 'шт' ? r1(rem) : Math.round(rem));
+  $('chips').innerHTML = opts.map(v => `<button data-v="${v}">${v} ${it.unit}${rem > 0.05 && Math.abs(v - rem) < 0.5 ? ' (решта)' : ''}</button>`).join('');
+  calc();
+  const mine = data.e.map((e, i) => ({...e, idx: i})).filter(e => e.i === it.id);
+  $('hist').innerHTML = mine.length ? `<div class="h">Записано за день</div>` + mine.map(e =>
+    `<div class="e"><span>${e.t} — ${fmt(e.a, it.unit)} (${Math.round(e.a * it.kpu)} ккал)</span>
+     <button data-del="${e.idx}">Видалити</button></div>`).join('') : '';
+}
+function calc() {
+  const it = current, a = parseFloat(String($('amount').value).replace(',', '.')) || 0;
+  if (!a) { $('calc').textContent = ''; return; }
+  const rem = remaining(it, stats());
+  let t = `${Math.round(a * it.kpu)} ккал • ${r1(a * it.ppu)} г білка`;
+  if (a > rem + 0.05) t += ` • ⚠️ більше ліміту на ${fmt(a - Math.max(rem, 0), it.unit)}`;
+  $('calc').textContent = t;
+}
+const step = () => current.unit === 'шт' ? 1 : (current.limit >= 200 ? 10 : 5);
+$('plus').onclick = () => { $('amount').value = r1((parseFloat($('amount').value) || 0) + step()); calc(); };
+$('minus').onclick = () => { $('amount').value = Math.max(0, r1((parseFloat($('amount').value) || 0) - step())); calc(); };
+$('amount').oninput = calc;
+$('chips').onclick = e => { const v = e.target.closest('button')?.dataset.v; if (v) { $('amount').value = v; calc(); } };
+$('addBtn').onclick = () => {
+  const a = parseFloat(String($('amount').value).replace(',', '.'));
+  if (!a || a <= 0) { $('amount').focus(); return; }
+  data.e.push({i: current.id, a, t: new Date().toTimeString().slice(0, 5)});
+  save(); render();
+  tg?.HapticFeedback?.notificationOccurred('success');
+  toast(`Додано: ${current.name.split(' (')[0]} ${fmt(a, current.unit)}`);
+  closeSheet();
+};
+$('hist').onclick = e => {
+  const i = e.target.dataset.del; if (i === undefined) return;
+  data.e.splice(+i, 1); save(); render(); updateSheet();
+};
+$('shade').onclick = closeSheet;
+$('list').onclick = e => { const c = e.target.closest('.card'); if (c) openSheet(ITEMS[c.dataset.id]); };
+
+/* ---------- замітки ---------- */
+const nt = $('noteText');
+nt.oninput = () => { nt.style.height = 'auto'; nt.style.height = nt.scrollHeight + 'px'; $('noteSend').classList.toggle('on', !!nt.value.trim()); };
+$('noteSend').onclick = () => {
+  const x = nt.value.trim(); if (!x) return;
+  const m = x.match(/(\d+(?:[.,]\d+)?)\s*(ккал|kcal|кал)/i);
+  data.n.push({x, k: m ? parseFloat(m[1].replace(',', '.')) : 0, t: new Date().toTimeString().slice(0, 5)});
+  nt.value = ''; nt.oninput(); save(); render();
+};
+$('notes').onclick = e => { const i = e.target.dataset.note; if (i !== undefined) { data.n.splice(+i, 1); save(); render(); } };
+
+/* ---------- дні ---------- */
+const shift = d => { const x = new Date(day + 'T12:00'); x.setDate(x.getDate() + d); day = iso(x); load(); };
+$('prev').onclick = () => shift(-1);
+$('next').onclick = () => { if (day < todayISO()) shift(1); };
+// новий день → автоматично чистий раціон
+let lastToday = todayISO();
+function checkDay() { const t = todayISO(); if (t !== lastToday) { if (day === lastToday) day = t; lastToday = t; load(); } }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDay(); });
+setInterval(checkDay, 60000);
+
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800); }
+
+load();
+</script>
+</body>
+</html>
